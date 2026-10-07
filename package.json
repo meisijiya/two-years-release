@@ -1,0 +1,34 @@
+{
+  "name": "two-years",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "两周年纪念网页应用 —— 布置台 / 阅读流 / 时间锁",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "test": "node --disable-warning=ExperimentalWarning --import ./test/preload-secrets.mjs --test \"test/**/*.test.js\"",
+    "check": "node scripts/check-syntax.mjs && node scripts/check-copy.mjs && node scripts/check-secrets.mjs",
+    "boot": "node --disable-warning=ExperimentalWarning --import ./test/preload-secrets.mjs scripts/check-boot.mjs",
+    "mut:observe": "node scripts/mut-observer.mjs",
+    "mut:ops-log": "node scripts/mut-ops-log.mjs",
+    "ops:check": "node scripts/ops-check.mjs",
+    "release:check": "node scripts/release-check.mjs",
+    "mut:release": "node scripts/mut-release-check.mjs",
+    "check:env-expand": "bash scripts/deploy-verify/verify-env-expansion.sh",
+    "check:node-source": "bash scripts/deploy-verify/verify-node-source.sh",
+    "mut:node-source": "bash scripts/deploy-verify/mutate-node-source.sh",
+    "build:copy": "node --disable-warning=ExperimentalWarning scripts/build-copy.mjs",
+    "verify": "npm run check && npm test && npm run boot"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "multer": "^2.0.0",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}

@@ -1,0 +1,52 @@
+[Unit]
+Description=two-years（两周年纪念网页应用）
+Documentation=file:/opt/two-years/deploy/README.md
+After=network-online.target
+Wants=network-online.target
+# 限流必须放在 [Unit]：自 systemd v229 起它属于 [Unit]，写在 [Service] 会被忽略。
+# 丢了它就是默认的 5 次/10s —— 服务持续崩约 15 秒后**不再拉起**，10-5 当天礼物直接死。
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+# 专用系统用户：应用不该以 root 跑。deploy.sh 会先把这个账号建出来。
+User=two-years
+Group=two-years
+WorkingDirectory=/opt/two-years
+
+# 密码**不写在这个文件里**。它们放在 /etc/two-years/two-years.env（0600 root:root），
+# 由 deploy.sh 从环境变量注入后写入。src/auth.js 每次启动都从环境变量重算哈希，
+# 所以改完 env 只要 restart，不必重跑 seed。
+EnvironmentFile=/etc/two-years/two-years.env
+Environment=NODE_ENV=production
+# ⚠️ **必须写死 /opt/node24/bin/node，不能用 `env node`。**
+# 这台机器的系统 Node 是 v20，而 `node:sqlite` 要 >= 22.5 —— 用 env node 会去抓
+# 系统的 20，启动时直接炸「Cannot find module 'node:sqlite'」。
+# 同机还跑着别的项目用系统 Node，所以也不能去升级系统 Node 本身，
+# 只能给这个服务单独装一份在 /opt/node24。
+ExecStart=/opt/node24/bin/node --disable-warning=ExperimentalWarning src/server.js
+
+# 10-5 当天宕机不能毁掉整个礼物（SPEC §五 / §八）。这不是"崩溃时再拉起来"，
+# 是"任何退出都拉起来"——包括 OOM 与被 kill。
+Restart=always
+RestartSec=3
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=two-years
+
+# ---- 收紧 ----
+# 唯一的写目录是 data/（库与照片）。ProtectSystem=strict 让整个文件系统只读，
+# 照片目录因此不可能被顺手写进 public/ 之外的任何地方（CONSTRAINTS.md §2）。
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/opt/two-years/data
+
+[Install]
+WantedBy=multi-user.target

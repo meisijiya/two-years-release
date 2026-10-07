@@ -1,0 +1,591 @@
+/* ═══════════════════════════════════════════════════════════════════
+   工单 02 · 两年了 —— 样式
+   视觉语言照抄 design.md §二 与 prototype/ui-v4.html，不自创：
+   §2.1 采样配色 · §2.2 2.5px 深棕描边 + 4px 4px 0 硬阴影（不用模糊投影）
+   §2.3 系统衬线零下载 · §2.4 圆角/间距/触控目标 ≥48px · §七 响应式。
+   本票渲染封印 / 身份 / 密码 / 布置台（留言 + 照片）四屏：
+   .pframe .x .cap 属照片信卡，.rd-* .lb* .letter-big 属阅读流，随工单 04 补齐。
+   ── 工单 04 追加：.rd-* 阅读流各段 · .grid3/.g 九宫格 · .ph p0..p4 占位块
+   · .letter-big 大信卡 · .lb/.lbnav/.lbclose 放大层 · .letter.ro 阅读端照片语气
+   （.lb 与 .ph 一起补齐，见下方「阅读流」段）。
+   ── 工单 06 追加：.netbar 断网提示条 · .img-fb 破图占位块
+   · 触控目标补到 ≥48px（.back/.linkish/.ops/.lbnav/.lbclose/.x 的点按区）
+   · 安全区补齐（固定元素与角落装饰走 env(safe-area-inset-*)）
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --tap: 48px;              /* 触控目标下限。design.md §2.4：所有可点元素 ≥ 48px */
+  --mint: #bfe0d8;   --mint-d: #9ccbc1;   --mint-w: #e6f4f1;
+  --cream: #fbf7f1;  --cream-2: #f3e9de;  --warm: #efe0d6;
+  --white: #ffffff;
+  --tan: #d9a886;    --tan-w: #f2e3d6;
+  --brown: #4a2f26;  --brown-2: #6b4a3c;  --brown-3: #9c8478;
+  --blush: #f5a79b;  --blush-w: #fde7e1;
+  --butter: #f3d06a; --butter-w: #fcf0c9;
+  --sky: #8fd3f0;    --sky-w: #e3f4fc;
+  --serif: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "Source Han Serif CN", "STSong", "SimSun", serif;
+  --sans: system-ui, -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  /* 贴纸式硬阴影：呼应角色「平涂 + 粗描边」的扁平感 */
+  --pop: 4px 4px 0 rgba(74, 47, 38, 0.13);
+  --pop-s: 3px 3px 0 rgba(74, 47, 38, 0.11);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--sans); color: var(--brown); background: var(--cream);
+  min-height: 100dvh;            /* 不用 100vh：移动浏览器地址栏会把它顶掉 */
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+input, textarea { font: inherit; color: inherit; }
+::selection { background: var(--butter-w); }
+
+.col { width: 100%; max-width: 460px; margin: 0 auto; padding: 0 20px; }
+.kicker { font-size: 11px; letter-spacing: 0.34em; color: var(--brown-2); font-weight: 700; }
+.screen { min-height: 100dvh; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+/* 墙底留 172px：底部常驻添加栏会盖住内容（design.md §6.3） */
+.pad-b { padding-bottom: 172px; }
+
+/* 形象：圆形裁切 + 2.5px 深棕描边，和角色本身的描边同粗 */
+.bub {
+  display: block; flex: none; border-radius: 50%; object-fit: cover;
+  border: 2.5px solid var(--brown); background: var(--white);
+}
+/* 白底且构图自带外围装饰的图（皇冠、粉心蓝星）不做圆形裁切 —— 会切掉那些小东西，
+   改成小照片卡：白底留一圈 + 圆角 + 硬阴影 + 微倾斜 */
+.polaroid {
+  display: inline-block; padding: 5px; flex: none; background: var(--white);
+  border: 2.5px solid var(--brown); border-radius: 12px; box-shadow: var(--pop);
+}
+.polaroid img { display: block; border-radius: 7px; }
+/* 角落点缀必须 position:absolute：不写这行，left/top 全部失效，元素留在流里被挤成一堆 */
+.st-seal-l, .st-seal-r, .st-foot { position: absolute; pointer-events: none; z-index: 1; }
+.st-seal-l { left: calc(var(--safe-l) - 14px); top: calc(var(--safe-t) + 24px); transform: rotate(-8deg); }
+.st-seal-r { right: calc(var(--safe-r) - 10px); top: calc(var(--safe-t) + 134px); transform: rotate(9deg); }
+.st-foot { position: relative; flex: none; transform: rotate(7deg); }
+
+/* ══════════ 断网提示条（工单 06）══════════
+   建在 #app 之外，只插一次。z-index 压在内容之上、放大层之下：
+   断网这件事要一直看得见，但不该盖住正在看的那张照片。 */
+.netbar {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 150;
+  display: none; align-items: center; gap: 10px;
+  padding: calc(var(--safe-t) + 8px) calc(var(--safe-r) + 14px) 8px calc(var(--safe-l) + 14px);
+  background: var(--butter-w); border-bottom: 2.5px solid var(--brown);
+  box-shadow: 0 4px 0 rgba(74, 47, 38, 0.13);
+  font-size: 12.5px; line-height: 1.7; color: var(--brown);
+}
+.netbar.on { display: flex; }
+.netbar .nb-ico {
+  flex: none; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--butter); border: 2px solid var(--brown);
+  display: grid; place-items: center; font-size: 13px; font-weight: 700;
+}
+.netbar .nb-tx { flex: 1 1 auto; letter-spacing: 0.04em; }
+.netbar .nb-retry {
+  flex: none; min-height: var(--tap); padding: 0 16px; border-radius: 999px;
+  background: var(--white); border: 2.5px solid var(--brown); box-shadow: var(--pop-s);
+  font-size: 12.5px; letter-spacing: 0.14em; font-weight: 700; white-space: nowrap;
+}
+.netbar .nb-retry:active { transform: translate(2px, 2px); box-shadow: none; }
+/* 提示条出现时把这一屏整体下推，免得它压在第一行字上（内容藏在它下面就读不清）。
+   选 #app > .screen：封印/布置/阅读三屏都是 #app 的直接子元素，一处盖住全部。
+   不支持 :has() 的老浏览器整条规则被忽略，代价只是提示条与首行重叠，可读性不受影响。 */
+body:has(.netbar.on) #app > .screen { padding-top: 66px; }
+
+/* ══════════ 封印页 ══════════ */
+.seal { background: var(--mint); color: var(--brown); }
+.seal::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(60vmax 40vmax at 12% 8%, rgba(255, 255, 255, 0.42), transparent 65%),
+    radial-gradient(46vmax 34vmax at 92% 92%, rgba(143, 211, 240, 0.32), transparent 68%);
+}
+.seal-body {
+  position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: calc(var(--safe-t) + 56px) calc(var(--safe-r) + 20px) 124px calc(var(--safe-l) + 20px);
+  text-align: center;
+}
+.duo { display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+.duo .l { position: relative; z-index: 2; transform: rotate(-6deg); }
+.duo .r { position: relative; z-index: 1; transform: translateX(-10px) rotate(5deg) translateY(6px); }
+.seal h1 { font-family: var(--serif); font-size: 30px; letter-spacing: 0.22em; margin: 0 0 9px; font-weight: 600; }
+.seal .sub { font-size: 12.5px; letter-spacing: 0.2em; color: var(--brown-2); margin-bottom: 32px; }
+
+.sealbox {
+  position: relative; width: min(330px, 88vw); border-radius: 18px; padding: 32px 24px 78px;
+  background: var(--white); border: 2.5px solid var(--brown); box-shadow: var(--pop);
+  transition: transform 0.2s ease;
+}
+.sealbox:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(74, 47, 38, 0.13); }
+.sealbox.shake { animation: shk 0.44s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes shk {
+  10%, 90% { transform: translateX(-1.5px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+}
+.sealbox .in { font-family: var(--serif); font-size: 15.5px; letter-spacing: 0.08em; line-height: 2; }
+.sealbox .tape {
+  position: absolute; left: -8px; right: -8px; bottom: 20px; transform: rotate(-2deg);
+  padding: 12px 0; text-align: center; background: var(--blush); color: var(--brown);
+  font-size: 12px; letter-spacing: 0.3em; font-weight: 700; white-space: nowrap;
+  border-top: 2.5px solid var(--brown); border-bottom: 2.5px solid var(--brown);
+}
+.nudge { font-size: 12.5px; letter-spacing: 0.12em; color: var(--brown-2); min-height: 20px; margin: 24px 0 4px; }
+.cd { display: flex; gap: 16px; justify-content: center; align-items: flex-end; margin-top: 6px; }
+.cd .u { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.cd .n { font-family: var(--serif); font-size: 31px; line-height: 1; font-variant-numeric: tabular-nums; min-width: 38px; font-weight: 600; }
+.cd .l { font-size: 10px; letter-spacing: 0.2em; color: var(--brown-2); }
+.go {
+  margin-top: 32px; padding: 15px 32px; border-radius: 999px; background: var(--butter);
+  color: var(--brown); font-size: 14px; letter-spacing: 0.22em; font-weight: 700; min-height: 48px;
+  border: 2.5px solid var(--brown); box-shadow: var(--pop); transition: transform 0.15s;
+}
+.go:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(74, 47, 38, 0.13); }
+.go .arw { margin-left: 8px; }
+.seal-foot {
+  position: relative; z-index: 2; text-align: center; padding-bottom: 28px;
+  font-size: 10.5px; letter-spacing: 0.18em; color: var(--brown-2);
+}
+
+/* ══════════ 身份页 / 密码页 ══════════ */
+.gate { background: var(--mint); color: var(--brown); }
+.gate-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 70px 0 124px; }
+.gate h2 { font-family: var(--serif); font-size: 23px; letter-spacing: 0.2em; text-align: center; margin: 0 0 9px; font-weight: 600; }
+.gate .hint { text-align: center; font-size: 12.5px; letter-spacing: 0.1em; color: var(--brown-2); margin: 0 0 32px; line-height: 2; }
+.back {
+  position: absolute; top: calc(var(--safe-t) + 8px); left: calc(var(--safe-l) + 10px); z-index: 5;
+  font-size: 12.5px; letter-spacing: 0.1em; color: var(--brown-2);
+  min-height: var(--tap); min-width: var(--tap); padding: 13px 10px;
+}
+.idcard {
+  display: flex; align-items: center; gap: 15px; width: 100%; text-align: left; padding: 15px;
+  margin-bottom: 13px; border-radius: 18px; background: var(--white);
+  border: 2.5px solid var(--brown); box-shadow: var(--pop); transition: transform 0.15s;
+}
+.idcard:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(74, 47, 38, 0.13); }
+.idcard .code { font-family: var(--serif); font-size: 22px; letter-spacing: 0.24em; line-height: 1.2; font-weight: 600; display: block; }
+.idcard .role { font-size: 11.5px; letter-spacing: 0.14em; color: var(--brown-3); display: block; margin-top: 4px; }
+.pin {
+  width: 100%; padding: 16px; text-align: center; font-size: 20px; letter-spacing: 0.4em;
+  border-radius: 16px; background: var(--white); border: 2.5px solid var(--brown);
+  outline: none; color: var(--brown); min-height: 48px;
+}
+.pin:focus { border-color: var(--brown-2); }
+.pin.err { background: var(--blush-w); animation: shk 0.44s; }
+.pmsg { text-align: center; font-size: 12px; letter-spacing: 0.08em; margin-top: 12px; min-height: 18px; color: var(--brown-2); }
+.pmsg.err { color: #c0503c; font-weight: 700; }
+
+/* ══════════ 布置台 · 信封墙 ══════════ */
+.desk {
+  background: var(--cream);
+  background-image: radial-gradient(rgba(74, 47, 38, 0.09) 1.2px, transparent 1.2px);
+  background-size: 13px 13px;
+}
+/* 角落点缀与固定元素都避开刘海/状态栏（design.md §七） */
+.desk-top { position: relative; padding: calc(var(--safe-t) + 26px) 0 20px; text-align: center; }
+.desk .decor { position: absolute; pointer-events: none; top: calc(var(--safe-t) + 14px); }
+.desk .decor-tl { left: -6px; transform: rotate(-10deg); }
+.desk .decor-tr { right: -8px; transform: rotate(11deg); }
+.chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 9px 15px; border-radius: 999px;
+  background: var(--butter-w); border: 2px solid var(--brown); color: var(--brown);
+  font-size: 11.5px; letter-spacing: 0.04em; line-height: 1.6; font-weight: 600;
+}
+.chip b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.desk h1 { font-family: var(--serif); font-size: 25px; letter-spacing: 0.26em; margin: 16px 0 7px; font-weight: 600; }
+.desk .lead { font-size: 12.5px; line-height: 2; letter-spacing: 0.08em; color: var(--brown-2); margin: 0; }
+.desk .meta { font-size: 11px; letter-spacing: 0.12em; color: var(--brown-3); margin: 10px 0 0; }
+.desk .meta b { color: var(--brown-2); font-variant-numeric: tabular-nums; }
+/* 退出：文字链也要够 48px 的点按区（工单 06：所有可点元素 ≥ 48px） */
+.linkish {
+  color: var(--brown-3); letter-spacing: 0.12em; text-decoration: underline;
+  min-height: var(--tap); min-width: var(--tap); padding: 0 8px;
+}
+.linkish:active { color: var(--brown); }
+
+.wall { padding: 8px 0 0; display: flex; flex-direction: column; gap: 15px; }
+.letter {
+  position: relative; padding: 16px 16px 14px 18px; border-radius: 16px; background: var(--white);
+  border: 2.5px solid var(--brown); border-left-width: 7px; border-left-color: var(--blush);
+  box-shadow: var(--pop); transform: rotate(var(--rot, 0deg)); transition: transform 0.18s;
+}
+.letter:active { transform: rotate(0) translate(2px, 2px); box-shadow: 2px 2px 0 rgba(74, 47, 38, 0.13); }
+.letter .top { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; }
+.wax { width: 12px; height: 12px; border-radius: 50%; background: var(--blush); flex: none; border: 2px solid var(--brown); }
+.letter .kind { font-size: 10.5px; letter-spacing: 0.22em; color: var(--brown-2); font-weight: 700; }
+.letter .date { margin-left: auto; font-size: 10.5px; letter-spacing: 0.08em; color: var(--brown-3); }
+.letter .body { font-family: var(--serif); font-size: 14.5px; line-height: 2.1; color: var(--brown); white-space: pre-wrap; overflow-wrap: anywhere; }
+.letter .ops { display: flex; gap: 4px; margin-top: 6px; }
+.letter .ops button {
+  font-size: 11.5px; letter-spacing: 0.1em; color: var(--brown-3);
+  min-height: var(--tap); min-width: 72px; padding: 0 10px;
+}
+.letter .ops button:active { color: var(--brown); }
+.empty { padding: 26px 0; text-align: center; font-size: 12.5px; letter-spacing: 0.12em; color: var(--brown-3); line-height: 2.1; }
+.foot-bear { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 22px 0 0; }
+
+/* 照片信卡（工单 03）。4:5 竖幅比方格更接近手机原图比例，
+   代价是墙高几屏 —— 用底部常驻添加栏补（design.md §6.3）。 */
+.pframe {
+  position: relative; border-radius: 14px; overflow: hidden; aspect-ratio: 4 / 5;
+  border: 2.5px solid var(--brown); background: var(--tan-w);
+}
+.pframe .ph { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 撤回角标：视觉仍是 32px（design.md §四），点按区是 48px。
+   做法是把按钮本体撑到 48×48（全都在 .pframe 里面，.pframe 有 overflow:hidden，
+   往外用伪元素撑大会被裁掉，命中区也跟着没了），32px 的腮红粉角标改由 ::before 画。
+   文字用 line-height:32px + text-align:right 落在角标正中，位置与原来一致。 */
+.x {
+  position: absolute; top: 0; right: 0; z-index: 2;
+  width: var(--tap); height: var(--tap);
+  font-size: 17px; line-height: 32px; text-align: right; color: var(--brown);
+}
+.x::before {
+  content: ""; position: absolute; top: 0; right: 0; width: 32px; height: 32px;
+  background: var(--blush); border-left: 2px solid var(--brown);
+  border-bottom: 2px solid var(--brown); border-radius: 0 0 0 14px;
+}
+.x:active::before { background: var(--butter); }
+.cap {
+  margin-top: 10px; padding: 11px 13px; border-radius: 11px; border: 2px dashed var(--tan);
+  font-family: var(--serif); font-size: 13px; letter-spacing: 0.06em;
+  color: var(--brown-2); line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.cap.ph-cap { color: var(--brown-3); }
+/* 阅读端的配文已经是内容了，不是输入框：去掉虚线，换成实线浅底 */
+.cap.cap-real { border-style: solid; border-color: rgba(74, 47, 38, 0.15); background: var(--cream-2); }
+
+/* 写留言 / 改留言：虚线边框 = 「还可以写」的输入语气（与照片配文的编辑态同源） */
+.composer {
+  margin: 8px 0 0; padding: 14px; border-radius: 16px; background: var(--white);
+  border: 2.5px solid var(--brown); box-shadow: var(--pop);
+}
+.composer .h { font-size: 11px; letter-spacing: 0.2em; color: var(--brown-2); font-weight: 700; margin-bottom: 10px; }
+.composer textarea {
+  width: 100%; min-height: 96px; padding: 12px; border-radius: 11px;
+  border: 2.5px dashed var(--tan); background: var(--cream);
+  font-family: var(--serif); font-size: 14.5px; line-height: 1.9; color: var(--brown);
+  outline: none; resize: vertical;
+}
+.composer textarea:focus { border-color: var(--brown-2); }
+.composer-ops { display: flex; gap: 12px; justify-content: flex-end; margin-top: 12px; }
+.composer-ops button {
+  min-height: 48px; padding: 12px 20px; border-radius: 999px;
+  font-size: 12.5px; letter-spacing: 0.14em; font-weight: 700; color: var(--brown-2);
+}
+.composer-ops .btn-solid {
+  background: var(--butter); color: var(--brown);
+  border: 2.5px solid var(--brown); box-shadow: var(--pop-s);
+}
+.composer-ops .btn-solid:active { transform: translate(2px, 2px); }
+
+/* 添加栏固定在底部：墙面可以很高，「＋」只留在墙底等于没有入口 */
+.addbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; pointer-events: none;
+  /* 底部固定元素避开手机手势条（design.md §七）：内边距 = 手势条高度 + 12px */
+  padding: 16px calc(var(--safe-r) + 20px) calc(var(--safe-b) + 12px) calc(var(--safe-l) + 20px);
+  background: linear-gradient(to top, var(--cream) 64%, rgba(251, 247, 241, 0));
+}
+.addbar .in { display: flex; gap: 12px; max-width: 420px; margin: 0 auto; }
+.add {
+  flex: 1; padding: 15px 8px; border-radius: 16px; border: 2.5px dashed var(--tan);
+  background: var(--white); text-align: center; transition: transform 0.15s; pointer-events: auto;
+}
+.add:active { transform: translate(2px, 2px); }
+.add .p { font-size: 22px; line-height: 1; color: var(--brown-3); margin-bottom: 9px; }
+.add .t { font-size: 13.5px; letter-spacing: 0.16em; color: var(--brown); font-weight: 700; }
+.add .d { font-size: 10.5px; letter-spacing: 0.02em; color: var(--brown-3); margin-top: 5px; line-height: 1.75; }
+
+/* ══════════ 阅读流 · 共同层（工单 04）══════════
+   视觉照抄 design.md §四组件表与 prototype/ui-v4.html 的 reading() 那一份。 */
+.rd-hero {
+  position: relative; min-height: 100dvh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: calc(var(--safe-t) + 68px) calc(var(--safe-r) + 20px) calc(var(--safe-b) + 68px) calc(var(--safe-l) + 20px);
+  text-align: center;
+}
+.rd-mint { background: var(--mint); color: var(--brown); }
+.rd-warm { position: relative; background: var(--cream); }
+.rd-sky { position: relative; background: var(--sky-w); color: var(--brown); }
+.rd-turn { min-height: 62dvh; }
+.rd-hero h1 { font-family: var(--serif); font-size: 31px; letter-spacing: 0.24em; margin: 18px 0 12px; font-weight: 600; }
+.rd-turn h1 { font-size: 24px; }
+.rd-hero .s { font-size: 12.5px; letter-spacing: 0.16em; color: var(--brown-2); line-height: 2.2; }
+.cue { margin-top: 38px; font-size: 10.5px; letter-spacing: 0.3em; color: var(--brown-2); animation: bob 2.4s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0); opacity: 0.6; } 50% { transform: translateY(7px); opacity: 1; } }
+.sec-h { text-align: center; padding: 58px 0 24px; }
+.rd-sub { text-align: center; font-size: 11px; letter-spacing: 0.26em; color: var(--brown-2); font-weight: 700; padding: 0 0 10px; }
+.rd-count { text-align: center; font-size: 10.5px; letter-spacing: 0.18em; color: var(--brown-3); padding: 0 0 12px; }
+.rd-range { text-align: center; font-size: 10.5px; letter-spacing: 0.14em; color: var(--brown-3); padding: 16px 0 0; }
+.rd-sec { padding-bottom: 40px; }
+/* 收尾两段是全站最后的内容：底部留出手势条，别让最后一行压在它上面 */
+.rd-foot-wrap { padding: 10px 0 calc(var(--safe-b) + 60px); }
+.rd-foot { text-align: center; font-size: 10.5px; letter-spacing: 0.2em; color: var(--brown-3); line-height: 2.1; }
+.rd-blessing, .letter-big p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rd-none { color: var(--brown-3); }
+/* 角落点缀必须 position:absolute：漏写时 left/top 静默失效，元素会被 flex 挤到页面正中 */
+.st-hero-l, .st-two-r { position: absolute; pointer-events: none; z-index: 1; }
+.st-hero-l { left: calc(var(--safe-l) - 10px); bottom: calc(var(--safe-b) + 64px); transform: rotate(-8deg); }
+.st-two-r { right: calc(var(--safe-r) + 14px); top: calc(var(--safe-t) + 64px); transform: rotate(9deg); }
+
+/* 共同层合照：九宫格固定 3×3 = 9 格，1:1 方格（design.md §四 .grid3/.g） */
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.grid3 .g {
+  position: relative; aspect-ratio: 1; border-radius: 11px; overflow: hidden; padding: 0;
+  border: 2px solid var(--brown); background: var(--tan-w); display: block; transition: transform 0.15s;
+}
+.grid3 .g:active { transform: scale(0.96); }
+.grid3 .gimg { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* 占位块：五色轮转 + 虚线感边框 + 「待替换」标签 —— 不是灰色方块（design.md §四） */
+.ph { width: 100%; height: 100%; }
+.ph span { font-size: 10px; letter-spacing: 0.16em; color: rgba(74, 47, 38, 0.42); font-weight: 600; text-align: center; }
+.ph.p0, .ph.p1, .ph.p2, .ph.p3, .ph.p4 { display: grid; place-items: center; border: 2px dashed rgba(74, 47, 38, 0.22); }
+.p0 { background: var(--tan-w); }
+.p1 { background: var(--butter-w); }
+.p2 { background: var(--blush-w); }
+.p3 { background: var(--mint-w); }
+.p4 { background: var(--sky-w); }
+
+/* 破图占位块（工单 06）：照片没读出来时**原地**换上去。
+   继承 .ph 的虚线感边框与五色底，字比占位块大一档 —— 它要说明「这里本来有张照片」，
+   不是一个「待替换」的格子。框与比例由外层容器（.pframe 4:5 / .g 1:1）继续撑着，
+   所以换上去之后布局不塌陷。 */
+.img-fb span { font-size: 11px; letter-spacing: 0.2em; color: rgba(74, 47, 38, 0.5); }
+.pframe > .img-fb { border-radius: 0; }
+.lb-frame .img-fb { border-radius: 12px; }
+
+/* 大信卡：阅读端的信 +「我们的两年」那段话 */
+.letter-big { background: var(--white); border: 2.5px solid var(--brown); border-radius: 18px; box-shadow: var(--pop); }
+.letter-big .in { padding: 40px 22px 44px; }
+.letter-big .h { font-family: var(--serif); font-size: 15px; letter-spacing: 0.18em; margin-bottom: 20px; font-weight: 700; }
+.letter-big p { font-family: var(--serif); font-size: 15.5px; line-height: 2.5; color: var(--brown); margin: 0 0 18px; }
+/* 阅读端的墙：没有添加栏，墙底不用留 172px */
+.wall.ro { padding-bottom: 56px; }
+
+/* 阅读端照片：还是 4:5 竖幅，但**完整显示不裁边**（工单 04 的 AC）。
+   布置台是 cover（只给自己看的预览），阅读端是 contain：她要看到整张照片。 */
+.letter.ro .pframe { background: var(--cream-2); }
+.letter.ro .pframe .ph { object-fit: contain; }
+
+/* 放大层。类名一律带 lb- 前缀：.x / .frame 这类通用名已被照片信卡占用，
+   撞车会让两个毫不相干的组件互相继承样式（design.md §6.1）。 */
+.lb {
+  position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center;
+  gap: 10px;
+  /* 放大层也是全屏固定元素：上下左右都避开刘海与手势条 */
+  padding: calc(var(--safe-t) + 24px) calc(var(--safe-r) + 24px) calc(var(--safe-b) + 24px) calc(var(--safe-l) + 24px);
+  background: rgba(40, 28, 24, 0.9);
+}
+.lb.on { display: flex; }
+.lb-mid { display: flex; flex-direction: column; align-items: center; gap: 12px; flex: none; }
+.lb-frame {
+  position: relative; width: min(78vw, 330px); aspect-ratio: 3 / 4; border-radius: 16px;
+  overflow: hidden; border: 2.5px solid var(--brown); display: grid; place-items: center;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
+  /* 底色给 object-fit:contain 露出来的上下空白带一个去处。
+     画框是 3:4，照片不是——4:5 和 1:1 的图放进来会在上下留两条空白带，
+     不给底色就透出背后的 .lb 半透明层，再透出页面上的字。实测取样：
+     有底色 #f3e9de，去掉底色同一处取样是 #372f2b / #34241f（页面内容）。
+     占位块是 --mint-w #e6f4f1，比这深；接缝之所以看不出来是因为它
+     恰好盖满框内容区（12px 圆角比框的 14px 更紧），不是靠同色。 */
+  background: var(--cream-2);
+}
+.lb-frame .lb-img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.lb-frame .ph span { font-size: 15px; letter-spacing: 0.3em; }
+/* 计数放在画框外侧的深色底上：压在照片上会因为照片明暗不可控而看不清 */
+.lb-cnt { font-size: 11.5px; letter-spacing: 0.2em; color: rgba(251, 247, 241, 0.78); }
+.lbnav {
+  width: var(--tap); height: var(--tap); flex: none; border-radius: 50%; background: rgba(255, 255, 255, 0.15);
+  color: var(--cream); font-size: 19px; line-height: 1; border: 1.5px solid rgba(255, 255, 255, 0.3);
+}
+.lbnav:active { background: rgba(255, 255, 255, 0.3); }
+.lbclose {
+  position: fixed; top: calc(var(--safe-t) + 12px); right: calc(var(--safe-r) + 12px);
+  width: var(--tap); height: var(--tap);
+  border-radius: 50%; background: rgba(255, 255, 255, 0.15); color: var(--cream); font-size: 20px;
+  line-height: 1; border: 1.5px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ══════════ 约定（工单 05）══════════
+   .pick / .both 照 design.md §四组件表与 prototype/ui-v4.html 的定稿视觉。
+   .both 写成可换行的两栏：放得下就并排放，窄屏自己落回上下两格，不写死断点。 */
+.rd-choice { padding: 52px 0 calc(var(--safe-b) + 64px); text-align: center; }
+.rd-choice h2 { font-family: var(--serif); font-size: 22px; letter-spacing: 0.2em; font-weight: 600; margin: 0 0 8px; }
+.rd-choice .s { font-size: 12px; letter-spacing: 0.1em; color: var(--brown-2); margin: 0 0 26px; }
+
+.pick { display: flex; flex-direction: column; gap: 12px; }
+.pick button {
+  min-height: 48px; padding: 17px 18px; text-align: left; border-radius: 16px;
+  background: var(--white); border: 2.5px solid var(--brown); font-size: 14.5px;
+  color: var(--brown); box-shadow: var(--pop-s); transition: transform 0.15s;
+}
+.pick button.on { background: var(--butter-w); }
+.pick button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(74, 47, 38, 0.11); }
+
+.both { display: flex; flex-wrap: wrap; gap: 12px; }
+.both .side {
+  flex: 1 1 190px; border-radius: 16px; padding: 18px; background: var(--white);
+  border: 2.5px solid var(--brown); border-left-width: 7px; border-left-color: var(--blush);
+  box-shadow: var(--pop);
+}
+.both .who { font-size: 10.5px; letter-spacing: 0.22em; color: var(--brown-3); margin-bottom: 8px; font-weight: 700; }
+.both .v {
+  font-family: var(--serif); font-size: 16px; letter-spacing: 0.08em; line-height: 1.9;
+  font-weight: 600; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.both-note { flex: 1 1 100%; text-align: center; font-size: 10.5px; letter-spacing: 0.2em; color: var(--brown-3); margin-top: 8px; }
+
+/* 布置台上的折约定区：选项在上，自己写的那条在下（选项不框住人） */
+.wish-box {
+  margin: 8px 0 20px; padding: 16px; border-radius: 16px; background: var(--white);
+  border: 2.5px solid var(--brown); box-shadow: var(--pop);
+}
+.wish-box .h { font-size: 11px; letter-spacing: 0.2em; color: var(--brown-2); font-weight: 700; margin-bottom: 12px; text-align: center; }
+.wish-own { margin-top: 12px; }
+.wish-own textarea {
+  width: 100%; min-height: 64px; padding: 12px; border-radius: 11px;
+  border: 2.5px dashed var(--tan); background: var(--cream);
+  font-family: var(--serif); font-size: 14.5px; line-height: 1.9; color: var(--brown);
+  outline: none; resize: vertical;
+}
+.wish-own textarea:focus { border-color: var(--brown-2); }
+.wish-say { font-size: 11.5px; letter-spacing: 0.04em; color: var(--brown-3); margin-top: 10px; text-align: center; }
+
+/* ══════════ 桌面：内容列居中，两侧放放大版装饰 ══════════ */
+@media (min-width: 760px) {
+  .col { max-width: 480px; }
+  .lb-frame { width: 330px; }
+  .desk::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(26vw 26vw at 10% 20%, rgba(143, 211, 240, 0.2), transparent 70%),
+      radial-gradient(22vw 22vw at 90% 72%, rgba(243, 208, 106, 0.22), transparent 70%);
+  }
+  .desk .decor-tl { left: calc(50% - 336px); top: calc(var(--safe-t) + 40px); transform: rotate(-12deg) scale(1.5); }
+  .desk .decor-tr { right: calc(50% - 344px); top: calc(var(--safe-t) + 64px); transform: rotate(14deg) scale(1.5); }
+}
+
+/* ══════════ 背景音乐 + 收纳（2026-10-03）══════════
+   播放器、收纳壳与提示条都建在 #app 之外（app.js 的 ensureMusic / ensureDweller），
+   只插一次；放在 #app 里会被 render() 连同 <audio> 一起重建，音乐每次都从头开始。
+   z-index 140：压在内容之上、**断网条(150)之下** —— 断网时那条是更急的事。 */
+
+/* 收纳本体。贴在**右边缘、四分之三高**处，不是右上角、也不是垂直居中。
+   · 右上角：压着布置台/封印页顶部那只装饰熊与倒计时条（用户 2026-10-03 截图确认）。
+   · 垂直居中（早先的形状）：压着封印页的封条「已 经 开 启」与右侧那只熊
+     （用户 2026-10-03 第二张截图确认）。
+   · 四分之三高：这一带在封印页、布置台、阅读流三屏上都是空白 ——
+     封印页是「已经开了」与 CTA 之间的空档，布置台是约定区与添加栏之间的空档，
+     阅读流是约定收尾那一段的留白。**四分之三是量出来的，不是猜的**：
+     见 test/ticket-10-dweller.test.js 的布局用例与 .scratch 里的量测记录。 */
+#dw {
+  position: fixed; z-index: 140;
+  right: 0; top: 75%; transform: translateY(-50%);
+  display: flex; align-items: center;
+}
+/* 窄屏：正文**不再**为右侧那条把手带让位。
+   早先这里有一条 `.col { padding-right: var(--tap); }`，理由是「九宫格每格右侧
+   28px 被把手压住，点那 28px 打开的是收纳而不是照片放大」。2026-10-04 用户改主意：
+   **正文保持居中，不为了给收纳腾位置把整列左移** —— 收纳盖住一点内容是可以接受的，
+   因为内容本来就能上下滑动查看。
+
+   于是代价换了个位置承担：把手现在会盖在内容右边一条上。真正丢掉的是
+   「九宫格最右一列的右边缘约 28px 不可点」。scripts/e2e/mobile.mjs 的
+   「滚动全程零重叠」因此不再是硬门禁，只保留「正中心不被盖」那条。
+   当初那条 @media 的来由记在 mobile.mjs 里，别连它一起删。 */
+#dw-tab {
+  writing-mode: vertical-rl; text-orientation: upright;
+  min-width: var(--tap); min-height: 96px; padding: 18px 0;
+  border: 2.5px solid var(--brown); border-right: none;
+  border-radius: 18px 0 0 18px;
+  background: var(--white); box-shadow: var(--pop-s);
+  font-family: var(--sans); font-size: 12px; letter-spacing: 0.16em; font-weight: 700;
+  color: var(--brown-3); position: relative; cursor: pointer;
+}
+#dw-tab[aria-expanded="true"] { color: var(--brown); background: var(--mint-w); }
+#dw-tab:active { transform: translate(2px, 2px); box-shadow: none; }
+/* 「想开、实际没响、且是被浏览器拦下的」——收起状态下那句提示挂在下面，
+   没人会去看，所以把这件事实也挂到把手上。 */
+#dw-tab.blocked::after {
+  content: ""; position: absolute; top: 8px; left: 50%; margin-left: -4px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--brown); box-shadow: 0 0 0 3px var(--butter-w);
+}
+
+/* 面板：order:-1 让它排在把手**左边**，展开时向右长出去，不把把手顶走 */
+#dw-panel {
+  order: -1;
+  width: min(74vw, 264px); margin-right: 8px;
+  padding: 14px 16px 16px; border-radius: 20px;
+  background: var(--white); border: 2.5px solid var(--brown); box-shadow: var(--pop);
+  text-align: left;
+}
+#dw-panel[hidden] { display: none; }
+.dw-h { margin-bottom: 12px; font-size: 11px; letter-spacing: 0.2em; color: var(--brown-2); font-weight: 700; }
+.dw-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dw-row + .dw-row { margin-top: 12px; padding-top: 12px; border-top: 2px dashed var(--tan-w); }
+.dw-lbl { font-size: 13px; color: var(--brown); }
+.dw-out {
+  width: 100%; min-height: var(--tap); border-radius: 999px; cursor: pointer;
+  background: var(--white); border: 2.5px solid var(--brown);
+  font-family: var(--sans); font-size: 12px; letter-spacing: 0.18em; font-weight: 700; color: var(--brown);
+}
+.dw-out:active { transform: translate(2px, 2px); box-shadow: none; }
+#dw-out[hidden] { display: none; }
+
+#bgm { display: none; }   /* 播放器不占位。没有 controls 的 audio 本来就不可见，写明是为了不靠浏览器默认。 */
+#bgm-btn {
+  min-height: var(--tap); min-width: var(--tap);
+  padding: 0 16px; border-radius: 999px; cursor: pointer;
+  background: var(--white); border: 2.5px solid var(--brown); box-shadow: var(--pop-s);
+  font-family: var(--sans); font-size: 11.5px; letter-spacing: 0.12em; font-weight: 700;
+  color: var(--brown-3); white-space: nowrap;
+}
+#bgm-btn.on { color: var(--brown); background: var(--mint-w); }
+#bgm-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+
+/* 「轻触任意处开启」提示。**长在面板内部**，不是浮在页面上的那一块：
+   收起时它整个不可见，把手上那颗小点替它说「还没响」；展开时它在面板底部。
+   pointer-events:none 是必须的 —— 它要接住的是她在**别处**的那一次点击，
+   自己绝不能吃掉点击。
+   ⚠️ 早先它是 body 上一个 position:fixed 的元素，absolute/fixed 定位的可用宽度
+   取自**包含块**，而它的包含块是 #dw（只有 48px 宽的那条把手）——于是它被挤成
+   一列单字、竖着淌下去，还压住了布置台的引导。收进面板就没有这个问题。 */
+#bgm-hint {
+  display: none; margin-top: 12px; padding: 9px 12px; border-radius: 14px;
+  background: var(--butter-w); border: 2px solid var(--brown);
+  pointer-events: none;
+  font-size: 12px; line-height: 1.6; letter-spacing: 0.04em; color: var(--brown);
+}
+#bgm-hint.on { display: block; }
+
+/* ══════════ 布置台的操作引导（2026-10-03 晚）══════════
+   界面上原来只有「照 片」「写 几 句」「撤 回」几个词，没有一处说她按下会发生什么。
+   尤其「撤 回」已经是**真删**，按钮上只写两个字不足以让人按下它。 */
+.guide {
+  margin: 4px 0 20px; padding: 16px; border-radius: 16px;
+  background: var(--butter-w); border: 2.5px solid var(--brown); box-shadow: var(--pop);
+}
+.guide .h {
+  margin-bottom: 10px; text-align: center;
+  font-size: 11px; letter-spacing: 0.2em; color: var(--brown-2); font-weight: 700;
+}
+.guide ul { margin: 0; padding: 0; list-style: none; }
+.guide li {
+  position: relative; padding: 7px 0 7px 78px;
+  font-size: 12.5px; line-height: 1.75; color: var(--brown-2);
+}
+.guide li + li { border-top: 2px dashed var(--white); }
+.guide b {
+  position: absolute; left: 0; top: 7px; width: 70px;
+  font-size: 11px; letter-spacing: 0.04em; color: var(--brown);
+  text-align: center; padding: 3px 0; border-radius: 999px;
+  background: var(--white); border: 2px solid var(--brown);
+}

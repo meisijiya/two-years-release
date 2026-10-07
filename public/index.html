@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- 标签页标题。& 用 &amp; 写：这是 HTML 源码里的转义形式，
+         浏览器读出来的字面量是「【改这里：doorCode】&【改这里：heroCode】の两周年」。
+         ⚠️ 应急页 scripts/export-standalone.mjs 里那个 <title> 必须是**同一个词**，
+         两边不一样的话她打开兜底看到的是另一个名字。
+         它同时也是 src/copy.js 的 COPY.meta.title —— 改文案改那一个地方，
+         scripts/check-copy.mjs 会盯着这里与它一致，不一致就让 npm run check 退出非 0。 -->
+    <title>【改这里：title】</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- 工单 02：封印页 → 身份页 → 密码页 → 布置台（只有留言条目）。
+         照片卡与阅读流分别由工单 03 / 04 接进同一个 card(e, i, mode)。 -->
+    <div id="app"></div>
+    <!-- 文案数据（window.COPY）。由 src/copy.js 经 `npm run build:copy` 生成，
+         **必须排在 app.js 前面**：app.js 的启动会立刻读它取词。
+         注意它不是"可选增强"——它缺了整页就没有字，但它只是一份同源静态文件，
+         没有网络请求、不影响时间锁。 -->
+    <script src="copy.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

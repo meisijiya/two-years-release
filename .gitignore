@@ -1,0 +1,93 @@
+node_modules/
+
+# 隔离工作区（git worktree）：里面是另一份完整检出，绝不能被提交进去。
+.worktrees/
+
+# 运行期数据：SQLite 库 + 700 权限照片目录
+data/
+*.db
+*.db-journal
+*.db-wal
+
+# ── 真实照片与真实文案：一律不入库 ──────────────────────────────
+# 共同层素材目录：九张合照 + blessing.txt（正文就是那份共同层祝福语）。
+# 10-4 那天把真图放进来、重跑 seed-shared 即可，**不要也不需要**提交到版本库。
+photos/
+
+# 任何名字下的照片/视频素材（兜底：防止有人从别的路径塞进来）。
+# ⚠️ 例外：public/yier-bubu/ 与 prototype/yier-bubu/ 下的小熊形象图
+#    是**站点自己的美术素材**（design.md §3.1 定的公开资源），
+#    少一张页面就少一个元素，所以下面用 negate 显式放行。
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.heic
+*.mp4
+*.mov
+!public/yier-bubu/**
+!prototype/yier-bubu/**
+# 例外二：docs/release-screenshots/ 下的产品截图（2026-10-06 加）
+#    为什么它们必须进版本库：它们是**公开 Release 的 README 用的图**，
+#    产物构建时从已跟踪文件里取。放在版本库里，构建才可复现 ——
+#    否则换一台机器重建 Release，README 会指向不存在的图。
+#
+#    ⚠️ 这个口子为什么**不会**把真照片放回来：
+#    ① 这一层是整仓的兜底规则，上面 ① 那条 `photos/` 才是主闸；
+#    ② negate 只放行 `docs/release-screenshots/**` 这一个目录，
+#       别的路径写错一个字就不生效；
+#    ③ 那 5 张图拍的是**占位符化产物**，里面没有任何真实内容
+#       （见同目录 README.md 的「零真实内容是构造保证」一节）；
+#    ④ check-secrets 与 release-check 的图片白名单都会再查一遍：
+#       包里出现 docs/screenshots/ 之外的图片就报红。
+!docs/release-screenshots/**
+#    同一条，产物包里的路径（构建时从 release-screenshots 改名过来）。
+#    ⚠️ 2026-10-06 实测踩到：只开口子 ① 的话，产物包 `docs/screenshots/*.png`
+#    仍被它自己带过来的 `*.png` 挡掉 —— 于是「重建干净仓库 → git add -A」时
+#    截图没进版本库，push 上去的 README 全是断链。
+#    症状很有欺骗性：**产物自检是绿的**（那时图还在文件系统的包里），
+#    绿的是解包目录，不是仓库。
+!docs/screenshots/**
+
+# 真实文案：共同层祝福语、约定正文、以后可能出现的本地文案覆盖文件
+*.local.txt
+copy.local.js
+public/copy.local.js
+photos/together/blessing.txt
+
+# 环境
+.env
+.env.*
+
+# 运维文档：ops/ 下是**线上服务怎么跑、怎么发、怎么救**的唯一记录。
+# ⚠️ 必须入库，理由和上面 `!public/yier-bubu/**` 同一条：文档不在版本控制里，
+#    就等于下一个接手的人（人或代理）看不到线上到底跑着什么，
+#    于是重新踩一遍已经踩过的坑。显式写 negate 而不是「碰巧没被规则匹配」——
+#    后者会在有人加一条宽泛规则（比如 `*.md` 或 `docs/`）时静默失效。
+!ops/**
+
+*.log
+.DS_Store
+Thumbs.db
+
+# ── 取证与一次性产物：整个 .scratch/ 是工作区，不是交付物 ──────────
+# 以前这里只挡了 png/jpg/verify-06 两处，注释却写着「截图、临时库、备份、
+# 对比模板」——意图与规则差了四个数量级，实测有 134 个未跟踪文件零覆盖。
+# 漏在外面的包括：50 个一次性 .sh（内含生产路径、sudo、直查库命令）、
+# 39 个变异实验/探针脚本、`.scratch/login-body.json`（**真实登录请求体**）、
+# 3 个合计 125MB 的部署包、2 个 mp3、19 个证据目录。
+# 逐个列扩展名等于漏一个泄一次，所以整目录忽略：它没有任何一份需要交接。
+# 证据本身是 report.json 里的**数值**（已入库），截图、探针、备份都可再生。
+.scratch/
+
+# 音频：上面「真实照片与真实文案」那节把 jpg/jpeg/png/gif/webp/heic/mp4/mov
+# 一个个列了出来，独缺 mp3——而生日 BGM 就是 mp3。这条补的是同一个口径的漏。
+*.mp3
+
+# 部署包：npm pack 出来的 .tgz 是发布产物，源码已经在仓库里，包不必入库。
+*.tgz
+
+# 一次性输出：verify.out / t09.out 这类命令重定向留下的尾巴。
+# 结论要留就写进 docs/evidence/*.json 并同步改索引表，.out 不是留痕的地方。
+*.out

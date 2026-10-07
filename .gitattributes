@@ -1,0 +1,23 @@
+# 行尾统一：仓库内容一律 LF。
+#
+# 为什么必须有这条 —— 「public/copy.js 与 src/copy.js 逐字节一致」这条门禁要求
+# 磁盘上的产物与生成器输出**逐字节**相同。生成器产 LF；在 core.autocrlf=true 的
+# Windows 机器上 git checkout 会把已提交的 copy.js 转成 CRLF，于是同一份内容
+# 在盘上多出 234 个字节，门禁变红。
+#
+# 后果不是「某台机器红」这么轻：**任何全新克隆都跑不过标准门禁**，而它变红的
+# 原因与代码对错无关。实测：master 上是绿的（那份工作副本恰好是 LF），
+# worktree 上全新 checkout 立刻红。同一个仓库、同一份代码、两个结论。
+#
+# 门禁若在干净检出上就不成立，它证明不了任何事。
+* text=auto eol=lf
+
+# 二进制素材：行尾转换会把这些文件弄坏，显式钉死。
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.heic binary
+*.mp4  binary
+*.mov  binary
